@@ -2,16 +2,24 @@
 #include <reapi>
 
 #define PLUGIN "fakegrenade"
-#define VERSION "1.0"
+#define VERSION "1.2"
 #define AUTHOR "Antarktida"
+
+/*
+    Замена модели HE гранаты на модель flash гранаты
+    закомментировать если не нужно
+*/
+#define W_MODEL "models/w_flashbang.mdl"
 
 // Сила отталкивания (в юнитах)
 const Float:powerRation = 600.0;
 
 public plugin_init() {
     register_plugin(PLUGIN, VERSION, AUTHOR);
-
     RegisterHookChain(RG_ThrowHeGrenade, "OnThrowHeGrenade_Post", 1);
+    #if defined W_MODEL
+    RegisterHookChain(RG_CBasePlayerWeapon_DefaultDeploy, "fw_PlayerWeapon_DefaultDeploy");
+    #endif
 }
 
 public OnThrowHeGrenade_Post(const index, Float:vecStart[3], Float:vecVelocity[3], Float:time, const team, const usEvent) {
@@ -36,6 +44,20 @@ public Grenade_Touch(const grenade, const other) {
 
     // Отталкиваем игроков
     PushPlayersAway(grenade_origin);
+}
+
+public fw_PlayerWeapon_DefaultDeploy(iEnt, szViewModel[], szWeaponModel[]) {
+    if (is_nullent(iEnt)) return;
+
+    // HE onwer and entity id
+    new id; id = get_member(iEnt, m_pPlayer);
+    new weapon; weapon = rg_get_iteminfo(iEnt, ItemInfo_iId);
+
+    if (!is_user_alive(id)) return;
+
+    if (weapon == CSW_HEGRENADE){
+        SetHookChainArg(2, ATYPE_STRING, W_MODEL); 
+    }
 }
 
 stock PushPlayersAway(const Float:origin[3], Float:radius = 300.0) {
